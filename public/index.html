@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Intelligent Digital Campus Ecosystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { base:'#070C18', panel:'#0F1626', panel2:'#141D31', edge:'#22304D', ink:'#D9E2F2', mute:'#8A9AB8',
+              signal:'#7C5CFF', teal:'#2DD4BF', amber:'#F5A524', rose:'#F5476B', grn:'#3FCF8E' },
+    fontFamily: { sans:['Inter','system-ui','-apple-system','Segoe UI','Roboto','sans-serif'],
+                  mono:['IBM Plex Mono','ui-monospace','SFMono-Regular','Menlo','monospace'] }
+  } }
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.4/babel.min.js" crossorigin></script>
+<style>
+  :root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); color-scheme:dark; }
+  *,*::before,*::after{ box-sizing:inherit; }
+  html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+  body{ margin:0; background:#070C18; color:#D9E2F2; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  .tnum{ font-variant-numeric:tabular-nums; }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:#0B1220; }
+  ::-webkit-scrollbar-thumb{ background:#22304D; border-radius:6px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#2f4368; }
+  :focus-visible{ outline:2px solid #7C5CFF; outline-offset:2px; border-radius:4px; }
+  input,select,textarea{ font-family:'IBM Plex Mono',monospace; }
+  .grid-bg{ background-image:linear-gradient(to right,rgba(34,48,77,.28) 1px,transparent 1px),linear-gradient(to bottom,rgba(34,48,77,.28) 1px,transparent 1px); background-size:44px 44px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+  .pulse-dot{ animation:pd 2.4s ease-in-out infinite; }
+  @keyframes pd{ 0%,100%{opacity:1} 50%{opacity:.35} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+/* ============================== ICONS ============================== */
+const ICONS = {
+  dashboard: <><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></>,
+  cpu: <><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></>,
+  list: <><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></>,
+  memory: <><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 18v2M10 18v2M14 18v2M18 18v2M7 10v4M12 10v4M17 10v4"/></>,
+  alert: <><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></>,
+  server: <><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/></>,
+  folder: <><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></>,
+  activity: <><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></>,
+  book: <><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></>,
+  plus: <><path d="M5 12h14M12 5v14"/></>,
+  x: <><path d="M18 6 6 18M6 6l12 12"/></>,
+  play: <><path d="M6 3l14 9-14 9V3Z"/></>,
+  pause: <><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></>,
+  stop: <><rect x="5" y="5" width="14" height="14" rx="2"/></>,
+  trash: <><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
+  search: <><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>,
+  users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></>,
+  shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></>,
+  lock: <><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+  chevron: <><path d="m9 18 6-6-6-6"/></>,
+  refresh: <><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></>,
+  file: <><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></>,
+  pencil: <><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
+  check: <><path d="M20 6 9 17l-5-5"/></>,
+  menu: <><path d="M4 6h16M4 12h16M4 18h16"/></>,
+  drive: <><path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/><path d="M6 16h.01M10 16h.01"/></>,
+  wifi: <><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M12 20h.01"/></>,
+  printer: <><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></>,
+  monitor: <><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>,
+  cap: <><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></>,
+  zap: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></>,
+  clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+  info: <><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></>,
+  dot: <><circle cx="12" cy="12" r="3"/></>
+};
+function Icon({ name, className = "w-5 h-5", sw = 1.75 }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">{ICONS[name] || ICONS.dot}</svg>;
+}
+
+/* ============================== HELPERS ============================== */
+const cx = (...a) => a.filter(Boolean).join(" ");
+const fmtBytes = (b) => {
+  if (b === null || b === undefined) return "—";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0, v = Number(b);
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + " " + u[i];
+};
+const fmtDur = (s) => {
+  if (s === null || s === undefined) return "—";
+  s = Math.max(0, Math.floor(s));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (d) return `${d}d ${h}h ${m}m`;
+  if (h) return `${h}h ${m}m ${sec}s`;
+  if (m) return `${m}m ${sec}s`;
+  return `${sec}s`;
+};
+const fmtTime = (ms) => new Date(ms).toLocaleTimeString("en-GB", { hour12: false });
+const fmtDate = (ms) => new Date(ms).toLocaleString("en-GB", { hour12: false });
+const pct1 = (v) => (v === null || v === undefined ? "—" : v.toFixed(1));
+
+const api = {
+  async get(path) { const r = await fetch(path); if (!r.ok) throw new Error((await r.json()).error || r.statusText); return r.json(); },
+  async send(path, method, body) {
+    const r = await fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    return j;
+  }
+};
+
+/* ============================== SHARED UI ============================== */
+function Panel({ title, sub, right, children, className, pad = "p-5" }) {
+  return (
+    <section className={cx("rounded-xl border border-edge bg-panel/80", className)}>
+      {(title || right) && (
+        <header className="flex items-start justify-between gap-4 border-b border-edge/70 px-5 py-3.5">
+          <div>
+            <h2 className="text-[15px] font-semibold tracking-tight text-ink">{title}</h2>
+            {sub && <p className="mt-0.5 text-xs text-mute">{sub}</p>}
+          </div>
+          {right}
+        </header>
+      )}
+      <div className={pad}>{children}</div>
+    </section>
+  );
+}
+function Btn({ children, onClick, tone = "ghost", icon, size = "md", disabled, title }) {
+  const tones = {
+    primary: "bg-signal text-white hover:bg-[#8e73ff] border-signal",
+    ghost: "bg-panel2 text-ink hover:bg-edge/60 border-edge",
+    danger: "bg-rose/15 text-rose hover:bg-rose/25 border-rose/40",
+    warn: "bg-amber/15 text-amber hover:bg-amber/25 border-amber/40",
+    ok: "bg-grn/15 text-grn hover:bg-grn/25 border-grn/40"
+  };
+  const sizes = { sm: "px-2.5 py-1.5 text-xs gap-1.5", md: "px-3.5 py-2 text-[13px] gap-2" };
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} title={title}
+      className={cx("inline-flex items-center justify-center rounded-lg border font-medium transition-colors", tones[tone], sizes[size], disabled && "opacity-40 cursor-not-allowed")}>
+      {icon && <Icon name={icon} className={size === "sm" ? "w-3.5 h-3.5" : "w-4 h-4"} />}
+      {children}
+    </button>
+  );
+}
+function Field({ label, value, onChange, type = "number", min = 0, w = "w-full", placeholder }) {
+  return (
+    <label className={cx("block", w)}>
+      {label && <span className="mb-1.5 block text-[11px] font-medium tracking-wide text-mute">{label}</span>}
+      <input type={type} min={min} value={value} placeholder={placeholder}
+        onChange={(e) => onChange(type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value)}
+        className="w-full rounded-lg border border-edge bg-base px-3 py-2 text-sm text-ink tnum placeholder:text-mute/60 focus:border-signal focus:outline-none" />
+    </label>
+  );
+}
+function Pick({ label, value, onChange, options }) {
+  return (
+    <label className="block">
+      {label && <span className="mb-1.5 block text-[11px] font-medium tracking-wide text-mute">{label}</span>}
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-edge bg-base px-3 py-2 text-sm text-ink focus:border-signal focus:outline-none">
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  );
+}
+function Bar({ value, tone = "signal", height = "h-2" }) {
+  const colors = { signal: "bg-signal", teal: "bg-teal", amber: "bg-amber", rose: "bg-rose", grn: "bg-grn" };
+  return (
+    <div className={cx("w-full overflow-hidden rounded-full bg-edge/60", height)}>
+      <div className={cx("h-full rounded-full transition-[width] duration-500 ease-out", colors[tone])} style={{ width: Math.max(0, Math.min(100, value || 0)) + "%" }} />
+    </div>
+  );
+}
+function Tag({ children, tone = "mute" }) {
+  const tones = { mute: "border-edge text-mute bg-panel2", signal: "border-signal/40 text-signal bg-signal/10", teal: "border-teal/40 text-teal bg-teal/10",
+    amber: "border-amber/40 text-amber bg-amber/10", rose: "border-rose/40 text-rose bg-rose/10", grn: "border-grn/40 text-grn bg-grn/10" };
+  return <span className={cx("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium", tones[tone])}>{children}</span>;
+}
+function Stat({ label, value, unit, sub, tone = "signal", icon, bar }) {
+  const text = { signal: "text-signal", teal: "text-teal", amber: "text-amber", rose: "text-rose", grn: "text-grn" }[tone];
+  return (
+    <div className="rounded-xl border border-edge bg-panel p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-mute">{label}</span>
+        <Icon name={icon} className={cx("h-4 w-4", text)} />
+      </div>
+      <p className="mt-2 font-mono text-[26px] font-semibold leading-none text-ink tnum">{value}<span className="ml-1 text-sm font-normal text-mute">{unit}</span></p>
+      {bar !== undefined && <div className="mt-3"><Bar value={bar} tone={tone} /></div>}
+      {sub && <p className="mt-2 text-[11px] text-mute">{sub}</p>}
+    </div>
+  );
+}
+function AreaChart({ data, color = "#7C5CFF", max = 100, height = 120, label, unit = "%" }) {
+  const w = 300, h = 100;
+  const pts = data && data.length ? data : [0];
+  const ceiling = max === "auto" ? Math.max(1, ...pts) * 1.15 : max;
+  const step = pts.length > 1 ? w / (pts.length - 1) : w;
+  const coords = pts.map((v, i) => [i * step, h - (Math.max(0, Math.min(ceiling, v || 0)) / ceiling) * h]);
+  const line = coords.map((c, i) => (i ? "L" : "M") + c[0].toFixed(1) + " " + c[1].toFixed(1)).join(" ");
+  const id = "g" + color.replace("#", "");
+  const last = pts[pts.length - 1];
+  return (
+    <div>
+      {label && (
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-xs text-mute">{label}</span>
+          <span className="font-mono text-lg font-semibold tnum" style={{ color }}>{(last || 0).toFixed(unit === "%" ? 0 : 1)}<span className="text-xs text-mute">{unit}</span></span>
+        </div>
+      )}
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height }} role="img">
+        <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.38" /><stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient></defs>
+        {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={w} y1={h * f} y2={h * f} stroke="#22304D" strokeWidth="0.5" />)}
+        <path d={line + ` L ${w} ${h} L 0 ${h} Z`} fill={`url(#${id})`} />
+        <path d={line} fill="none" stroke={color} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+      </svg>
+    </div>
+  );
+}
+
+/* ============================== SCHEDULING ENGINE (verified) ============================== */
+function mergeGantt(units) {
+  const out = [];
+  units.forEach((u) => {
+    const last = out[out.length - 1];
+    if (last && last.pid === u.pid && last.end === u.start) last.end = u.end;
+    else out.push({ ...u });
+  });
+  return out;
+}
+function computeSchedule(list, algo, quantum) {
+  const procs = list.filter((p) => p.bt > 0).map((p) => ({ pid: p.pid, name: p.name, at: Number(p.at) || 0, bt: Number(p.bt) || 0, pr: Number(p.pr) || 1 }));
+  const n = procs.length;
+  if (!n) return { rows: [], gantt: [], avg: { wt: 0, tat: 0, rt: 0 }, makespan: 0, idle: 0 };
+  const rem = {}, ct = {}, start = {};
+  procs.forEach((p) => { rem[p.pid] = p.bt; ct[p.pid] = 0; start[p.pid] = -1; });
+  let t = 0, done = 0, units = [], guard = 0;
+  const arrived = (time) => procs.filter((p) => p.at <= time && rem[p.pid] > 0);
+
+  if (algo === "SRTF") {
+    while (done < n && guard++ < 200000) {
+      const av = arrived(t);
+      if (!av.length) { units.push({ pid: "IDLE", start: t, end: t + 1 }); t++; continue; }
+      av.sort((a, b) => rem[a.pid] - rem[b.pid] || a.at - b.at || String(a.pid).localeCompare(String(b.pid)));
+      const p = av[0];
+      if (start[p.pid] < 0) start[p.pid] = t;
+      units.push({ pid: p.pid, start: t, end: t + 1 });
+      rem[p.pid]--; t++;
+      if (rem[p.pid] === 0) { ct[p.pid] = t; done++; }
+    }
+  } else if (algo === "RR") {
+    const q = Math.max(1, Number(quantum) || 1);
+    const order = [...procs].sort((a, b) => a.at - b.at || String(a.pid).localeCompare(String(b.pid)));
+    let idx = 0; const queue = [];
+    const pushArrivals = (time) => { while (idx < order.length && order[idx].at <= time) queue.push(order[idx++]); };
+    pushArrivals(0);
+    while (done < n && guard++ < 200000) {
+      if (!queue.length) { units.push({ pid: "IDLE", start: t, end: t + 1 }); t++; pushArrivals(t); continue; }
+      const p = queue.shift();
+      if (start[p.pid] < 0) start[p.pid] = t;
+      const slice = Math.min(q, rem[p.pid]);
+      units.push({ pid: p.pid, start: t, end: t + slice });
+      for (let k = 1; k <= slice; k++) pushArrivals(t + k);
+      t += slice; rem[p.pid] -= slice;
+      if (rem[p.pid] === 0) { ct[p.pid] = t; done++; } else queue.push(p);
+    }
+  } else {
+    const cmp = { FCFS: (a, b) => a.at - b.at, SJF: (a, b) => a.bt - b.bt || a.at - b.at, PRIORITY: (a, b) => a.pr - b.pr || a.at - b.at }[algo] || ((a, b) => a.at - b.at);
+    while (done < n && guard++ < 200000) {
+      const av = arrived(t);
+      if (!av.length) {
+        const next = Math.min(...procs.filter((p) => rem[p.pid] > 0).map((p) => p.at));
+        units.push({ pid: "IDLE", start: t, end: next }); t = next; continue;
+      }
+      const p = [...av].sort(cmp)[0];
+      start[p.pid] = t;
+      units.push({ pid: p.pid, start: t, end: t + p.bt });
+      t += p.bt; rem[p.pid] = 0; ct[p.pid] = t; done++;
+    }
+  }
+  const rows = procs.map((p) => {
+    const tat = ct[p.pid] - p.at;
+    return { ...p, ct: ct[p.pid], tat, wt: tat - p.bt, rt: Math.max(0, start[p.pid] - p.at) };
+  });
+  const avg = { wt: rows.reduce((s, r) => s + r.wt, 0) / n, tat: rows.reduce((s, r) => s + r.tat, 0) / n, rt: rows.reduce((s, r) => s + r.rt, 0) / n };
+  const gantt = mergeGantt(units);
+  return { rows, gantt, avg, makespan: t, idle: gantt.filter((g) => g.pid === "IDLE").reduce((s, g) => s + (g.end - g.start), 0) };
+}
+const PID_COLORS = ["#7C5CFF", "#2DD4BF", "#F5A524", "#F5476B", "#3FCF8E", "#60A5FA", "#E879F9", "#FB923C"];
+const colorFor = (pid, list) => {
+  if (pid === "IDLE") return "#22304D";
+  const i = list.findIndex((p) => String(p.pid) === String(pid));
+  return PID_COLORS[(i < 0 ? 0 : i) % PID_COLORS.length];
+};
+function Gantt({ gantt, procs, unit = "s" }) {
+  if (!gantt.length) return <p className="text-sm text-mute">Load some processes, then run the algorithm.</p>;
+  const total = gantt[gantt.length - 1].end || 1;
+  return (
+    <div className="overflow-x-auto pb-1">
+      <div className="min-w-[560px]">
+        <div className="flex h-14 w-full overflow-hidden rounded-lg border border-edge">
+          {gantt.map((g, i) => {
+            const c = colorFor(g.pid, procs);
+            return (
+              <div key={i} className="flex items-center justify-center border-r border-base/60 last:border-r-0"
+                style={{ width: ((g.end - g.start) / total) * 100 + "%", background: g.pid === "IDLE" ? "repeating-linear-gradient(45deg,#111a2c,#111a2c 6px,#0d1424 6px,#0d1424 12px)" : c + "26", color: c }}
+                title={`${g.pid}: ${g.start} → ${g.end} ${unit}`}>
+                <span className="truncate px-1 font-mono text-xs font-semibold">{g.pid === "IDLE" ? "idle" : g.pid}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="relative mt-1 h-5">
+          {gantt.map((g, i) => <span key={i} className="absolute -translate-x-1/2 font-mono text-[10px] text-mute tnum" style={{ left: (g.start / total) * 100 + "%" }}>{g.start}</span>)}
+          <span className="absolute right-0 translate-x-1/2 font-mono text-[10px] text-mute tnum">{total}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== MEMORY + BANKER'S ============================== */
+function allocateMemory(blocks, reqs, strategy) {
+  const free = blocks.map((size, i) => ({ id: "B" + (i + 1), size, remaining: size, holder: null, used: 0 }));
+  const results = reqs.map((r) => {
+    const candidates = free.filter((b) => !b.holder && b.size >= r.size);
+    let pick = null;
+    if (candidates.length) {
+      if (strategy === "first") pick = candidates[0];
+      if (strategy === "best") pick = candidates.reduce((a, b) => (b.size < a.size ? b : a));
+      if (strategy === "worst") pick = candidates.reduce((a, b) => (b.size > a.size ? b : a));
+    }
+    if (pick) { pick.holder = r.name; pick.used = r.size; pick.remaining = pick.size - r.size; }
+    return { ...r, block: pick ? pick.id : null, internal: pick ? pick.size - r.size : 0 };
+  });
+  return {
+    blocks: free, results,
+    external: free.filter((b) => !b.holder).reduce((s, b) => s + b.size, 0),
+    internal: free.filter((b) => b.holder).reduce((s, b) => s + b.remaining, 0),
+    used: free.filter((b) => b.holder).reduce((s, b) => s + b.used, 0),
+    total: blocks.reduce((s, b) => s + b, 0)
+  };
+}
+function bankers(available, procs) {
+  const m = available.length, n = procs.length;
+  const need = procs.map((p) => p.max.map((v, j) => v - p.alloc[j]));
+  if (need.some((row) => row.some((v) => v < 0))) return { error: "Allocation cannot exceed the maximum claim.", need };
+  const work = [...available], finish = Array(n).fill(false), seq = [];
+  let progress = true;
+  while (progress) {
+    progress = false;
+    for (let i = 0; i < n; i++) {
+      if (finish[i]) continue;
+      if (need[i].every((v, j) => v <= work[j])) {
+        for (let j = 0; j < m; j++) work[j] += procs[i].alloc[j];
+        finish[i] = true; seq.push(i); progress = true;
+      }
+    }
+  }
+  return { safe: finish.every(Boolean), seq, need, blocked: procs.map((_, i) => i).filter((i) => !finish[i]) };
+}
+
+/* ============================== NAV + ROLES ============================== */
+const ROLES = {
+  Student: { icon: "cap", blurb: "Read-only. Cannot signal processes or write files." },
+  Faculty: { icon: "book", blurb: "Can read every module and write to the campus files." },
+  Administrator: { icon: "shield", blurb: "Full control, including sending signals to real processes." }
+};
+const NAV = [
+  { id: "dashboard", label: "Dashboard", icon: "dashboard", roles: ["Student", "Faculty", "Administrator"] },
+  { id: "processes", label: "Process Management", icon: "list", roles: ["Faculty", "Administrator"] },
+  { id: "scheduling", label: "CPU Scheduling", icon: "cpu", roles: ["Faculty", "Administrator"] },
+  { id: "memory", label: "Memory Management", icon: "memory", roles: ["Faculty", "Administrator"] },
+  { id: "deadlock", label: "Deadlock Detection", icon: "alert", roles: ["Administrator"] },
+  { id: "resources", label: "Resource Management", icon: "server", roles: ["Faculty", "Administrator"] },
+  { id: "files", label: "File Management", icon: "folder", roles: ["Student", "Faculty", "Administrator"] },
+  { id: "monitor", label: "System Monitoring", icon: "activity", roles: ["Student", "Faculty", "Administrator"] },
+  { id: "concepts", label: "OS Concepts", icon: "book", roles: ["Student", "Faculty", "Administrator"] }
+];
+const STATE_TONE = { "Running / Ready": "grn", Running: "grn", Waiting: "amber", Suspended: "teal", Terminated: "rose", Unknown: "mute" };
+
+/* ============================== DASHBOARD ============================== */
+function DashboardPage({ live, sys, go, role }) {
+  if (!live) return <Waiting />;
+  const cpu = live.cpu.overall;
+  const byState = live.byState || {};
+  return (
+    <div className="space-y-5">
+      <div className="relative overflow-hidden rounded-xl border border-edge bg-panel">
+        <div className="grid-bg absolute inset-0 opacity-60" />
+        <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-grn/40 bg-grn/10 px-3 py-1">
+              <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-grn" />
+              <span className="text-xs font-medium text-grn">Connected to {sys.hostname} · up {fmtDur(live.uptimeSec)}</span>
+            </div>
+            <h1 className="max-w-xl text-[28px] font-semibold leading-tight tracking-tight text-ink sm:text-[34px]">Intelligent Digital Campus Ecosystem</h1>
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-mute">
+              Every number on this screen is read from the kernel of this machine, once a second. The campus is the
+              computer it runs on: its processes, its memory, its disks and its files.
+            </p>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+            <div><dt className="text-[11px] text-mute">Processor</dt><dd className="font-mono text-[13px] text-ink">{sys.cores} cores</dd></div>
+            <div><dt className="text-[11px] text-mute">Kernel</dt><dd className="font-mono text-[13px] text-ink">{sys.type} {sys.release.split("-")[0]}</dd></div>
+            <div><dt className="text-[11px] text-mute">Context switches/s</dt><dd className="font-mono text-[13px] text-ink tnum">{live.kernel.ctxtRate ?? "—"}</dd></div>
+            <div><dt className="text-[11px] text-mute">Load average</dt><dd className="font-mono text-[13px] text-ink tnum">{live.load.map((l) => l.toFixed(2)).join("  ")}</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Stat label="CPU utilisation" value={cpu.toFixed(0)} unit="%" bar={cpu} tone={cpu > 85 ? "rose" : "signal"} icon="cpu" sub={`${live.kernel.running ?? "—"} in the run queue, ${live.kernel.blocked ?? "—"} blocked`} />
+        <Stat label="Memory in use" value={(live.mem.used / 1073741824).toFixed(1)} unit="GB" bar={live.mem.pct} tone={live.mem.pct > 85 ? "amber" : "teal"} icon="memory" sub={`${fmtBytes(live.mem.free)} available of ${fmtBytes(live.mem.total)}`} />
+        <Stat label="Processes" value={live.processCount} unit="live" tone="grn" icon="list" sub={Object.entries(byState).map(([k, v]) => `${v} ${k.split(" ")[0].toLowerCase()}`).join(" · ")} />
+        <Stat label="Login sessions" value={live.users ? live.users.sessions : "—"} unit="open" tone="amber" icon="users" sub={live.users ? live.users.unique.join(", ") : ""} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel className="lg:col-span-2" title="Live load" sub="One sample per second, straight from the kernel counters">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <AreaChart data={live.cpuHist} color="#7C5CFF" label="CPU" />
+            <AreaChart data={live.memHist} color="#2DD4BF" label="Memory" />
+          </div>
+        </Panel>
+        <Panel title="Top consumers" sub="The processes actually holding the CPU right now">
+          <ul className="space-y-3">
+            {(live.top || []).slice(0, 7).map((p) => (
+              <li key={p.pid}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="truncate text-ink">{p.name}</span>
+                  <span className="ml-2 shrink-0 font-mono text-mute tnum">{p.cpuPct === null ? fmtBytes(p.rss) : pct1(p.cpuPct) + "%"}</span>
+                </div>
+                <Bar value={p.cpuPct === null ? (p.rss / live.mem.total) * 100 : p.cpuPct} tone="signal" height="h-1.5" />
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel className="lg:col-span-2" title="Kernel activity" sub="Real process births and deaths detected between samples">
+          {live.events && live.events.length ? (
+            <ul className="divide-y divide-edge/60">
+              {live.events.slice(0, 8).map((e, i) => (
+                <li key={i} className="flex items-start gap-3 py-2.5 first:pt-0">
+                  <Icon name={e.icon || "dot"} className={cx("mt-0.5 h-4 w-4 shrink-0", e.tone === "rose" ? "text-rose" : e.tone === "amber" ? "text-amber" : e.tone === "grn" ? "text-grn" : "text-signal")} />
+                  <p className="flex-1 text-[13px] leading-relaxed text-ink">{e.text}</p>
+                  <span className="font-mono text-[11px] text-mute tnum">{fmtTime(e.at)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="py-6 text-center text-[13px] text-mute">No process has started or exited since the server began watching. Open an app to see this fill up.</p>}
+        </Panel>
+        <Panel title="Jump to a module" sub={`Visible to your ${role.toLowerCase()} account`}>
+          <div className="grid gap-2.5">
+            {NAV.filter((n) => n.id !== "dashboard" && n.roles.includes(role)).slice(0, 6).map((c) => (
+              <button key={c.id} onClick={() => go(c.id)} className="group flex items-center gap-3 rounded-lg border border-edge bg-panel2 px-3.5 py-3 text-left transition-colors hover:border-signal/60">
+                <span className="grid h-8 w-8 place-items-center rounded-md bg-signal/12 text-signal"><Icon name={c.icon} className="h-4 w-4" /></span>
+                <span className="flex-1 text-[13px] font-medium text-ink">{c.label}</span>
+                <Icon name="chevron" className="h-4 w-4 text-mute transition-transform group-hover:translate-x-0.5" />
+              </button>
+            ))}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== PROCESS MANAGEMENT ============================== */
+function StateDiagram({ active }) {
+  const nodes = [{ id: "New", x: 30, y: 100 }, { id: "Ready", x: 180, y: 100 }, { id: "Running", x: 350, y: 100 }, { id: "Waiting", x: 265, y: 190 }, { id: "Terminated", x: 510, y: 100 }];
+  const W = 120, H = 42;
+  const pos = (id) => nodes.find((n) => n.id === id);
+  const arrow = (from, to, bend) => {
+    const a = pos(from), b = pos(to);
+    if (bend === "down") return `M${a.x + W / 2} ${a.y + H} Q ${a.x + W / 2} ${b.y + H / 2} ${b.x} ${b.y + H / 2 - 6}`;
+    if (bend === "up") return `M${a.x + W / 2} ${a.y} Q ${a.x + W / 2} ${b.y + H / 2} ${b.x + W} ${b.y + H / 2 + 6}`;
+    return `M${a.x + W} ${a.y + H / 2} L ${b.x - 6} ${b.y + H / 2}`;
+  };
+  const edges = [["New", "Ready"], ["Ready", "Running"], ["Running", "Terminated"], ["Running", "Waiting", "down"], ["Waiting", "Ready", "up"]];
+  return (
+    <div className="overflow-x-auto">
+      <svg viewBox="0 0 650 250" className="min-w-[560px]" style={{ width: "100%" }}>
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8A9AB8" /></marker></defs>
+        {edges.map(([f, t, b], i) => <path key={i} d={arrow(f, t, b)} fill="none" stroke="#8A9AB8" strokeWidth="1.3" markerEnd="url(#ah)" />)}
+        <path d="M350 122 Q 265 165 200 122" fill="none" stroke="#8A9AB8" strokeWidth="1.3" strokeDasharray="4 3" markerEnd="url(#ah)" />
+        <text x="275" y="162" fontSize="10" fill="#8A9AB8" textAnchor="middle" className="font-mono">quantum expired (preempt)</text>
+        {nodes.map((n) => {
+          const on = active === n.id;
+          const tone = { New: "#8A9AB8", Ready: "#2DD4BF", Running: "#3FCF8E", Waiting: "#F5A524", Terminated: "#F5476B" }[n.id];
+          return (
+            <g key={n.id}>
+              <rect x={n.x} y={n.y} width={W} height={H} rx="10" fill={on ? tone + "26" : "#141D31"} stroke={on ? tone : "#22304D"} strokeWidth={on ? 1.8 : 1} />
+              <text x={n.x + W / 2} y={n.y + 26} textAnchor="middle" fontSize="13" fill={on ? tone : "#D9E2F2"} fontWeight={on ? 600 : 500}>{n.id}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+const DIAGRAM_NODE = { R: "Running", S: "Waiting", D: "Waiting", I: "Waiting", T: "Ready", t: "Ready", Z: "Terminated", X: "Terminated" };
+
+function ProcessesPage({ live, sys, role, toast }) {
+  const [rows, setRows] = useState([]);
+  const [sort, setSort] = useState("cpu");
+  const [sel, setSel] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [filter, setFilter] = useState("");
+  const [busy, setBusy] = useState(false);
+  const canSignal = role === "Administrator";
+
+  const load = useCallback(() => {
+    api.get(`/api/processes?sort=${sort}&limit=80`).then((d) => setRows(d.processes)).catch(() => {});
+  }, [sort]);
+
+  useEffect(() => { load(); const t = setInterval(load, 2000); return () => clearInterval(t); }, [load]);
+  useEffect(() => {
+    if (sel === null) { setDetail(null); return; }
+    api.get("/api/process/" + sel).then(setDetail).catch(() => setDetail(null));
+  }, [sel, rows]);
+
+  const shown = rows.filter((p) => !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || String(p.pid).includes(filter));
+  const selected = rows.find((p) => p.pid === sel);
+
+  const act = async (action) => {
+    if (!selected) return;
+    const verb = { suspend: "Suspend (SIGSTOP)", resume: "Resume (SIGCONT)", terminate: "Terminate (SIGTERM)" }[action];
+    if (!window.confirm(`${verb} "${selected.name}" (PID ${selected.pid}) on this machine?\n\nThis sends a real signal to a real process.`)) return;
+    setBusy(true);
+    try {
+      const out = await api.send("/api/process/" + selected.pid, "POST", { action });
+      toast(`${out.signal} delivered to ${out.name} (PID ${out.pid})`, "grn");
+      setTimeout(load, 400);
+    } catch (e) { toast(e.message, "rose"); }
+    setBusy(false);
+  };
+
+  const th = "px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide text-mute";
+  const td = "px-3 py-2.5 text-[13px] text-ink";
+
+  return (
+    <div className="space-y-5">
+      <Panel title="Live process table" sub={`${rows.length} of ${live ? live.processCount : "—"} processes, refreshed every 2 seconds`} pad="p-0"
+        right={<div className="flex items-center gap-2">
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by name or PID"
+            className="w-44 rounded-lg border border-edge bg-base px-3 py-1.5 font-sans text-[13px] text-ink placeholder:text-mute/70 focus:border-signal focus:outline-none" />
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="rounded-lg border border-edge bg-base px-2 py-1.5 font-sans text-[12px] text-ink focus:border-signal focus:outline-none">
+            <option value="cpu">Sort by CPU</option><option value="mem">Sort by memory</option><option value="pid">Sort by PID</option>
+          </select>
+        </div>}>
+        <div className="max-h-[520px] overflow-auto">
+          <table className="w-full min-w-[820px] border-collapse">
+            <thead className="sticky top-0 z-10 border-b border-edge/70 bg-panel2">
+              <tr>{["PID", "Process", "State", "CPU", "Memory", "Threads", "CPU time", "Running for", "Nice"].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+            </thead>
+            <tbody className="divide-y divide-edge/50">
+              {shown.map((p) => (
+                <tr key={p.pid} onClick={() => setSel(p.pid)} className={cx("cursor-pointer transition-colors hover:bg-panel2/70", sel === p.pid && "bg-signal/[0.07]")}>
+                  <td className={cx(td, "font-mono text-mute")}>{p.pid}</td>
+                  <td className={cx(td, "max-w-[220px] truncate font-medium")}>{p.name}</td>
+                  <td className={td}><Tag tone={STATE_TONE[p.state] || "mute"}>{p.stateLabel} <span className="font-mono opacity-70">{p.stateRaw}</span></Tag></td>
+                  <td className={cx(td, "font-mono tnum")}>{p.cpuPct === null ? "—" : pct1(p.cpuPct) + "%"}</td>
+                  <td className={cx(td, "font-mono tnum text-mute")}>{fmtBytes(p.rss)}</td>
+                  <td className={cx(td, "font-mono tnum text-mute")}>{p.threads ?? "—"}</td>
+                  <td className={cx(td, "font-mono tnum text-mute")}>{p.cpuSeconds === null ? "—" : fmtDur(p.cpuSeconds)}</td>
+                  <td className={cx(td, "font-mono tnum text-mute")}>{fmtDur(p.elapsedSec)}</td>
+                  <td className={cx(td, "font-mono tnum text-mute")}>{p.nice ?? "—"}</td>
+                </tr>
+              ))}
+              {!shown.length && <tr><td colSpan="9" className="px-3 py-10 text-center text-[13px] text-mute">Nothing matches that filter.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel title={selected ? `PID ${selected.pid}` : "Process control"} sub={selected ? selected.name : "Select a row to inspect it"}>
+          {selected ? (
+            <div className="space-y-4">
+              <div className="space-y-2 text-[13px]">
+                <div className="flex justify-between border-b border-edge/40 pb-2"><span className="text-mute">Kernel state</span><Tag tone={STATE_TONE[selected.state] || "mute"}>{selected.stateRaw} · {selected.stateLabel}</Tag></div>
+                <p className="text-[12px] leading-relaxed text-mute">{selected.stateNote}</p>
+                {detail && detail.voluntaryCtxt && (
+                  <div className="flex justify-between border-b border-edge/40 pb-2"><span className="text-mute">Context switches</span>
+                    <span className="font-mono text-ink tnum">{detail.voluntaryCtxt} voluntary · {detail.involuntaryCtxt} forced</span></div>
+                )}
+                {detail && detail.openFds !== null && detail.openFds !== undefined && (
+                  <div className="flex justify-between border-b border-edge/40 pb-2"><span className="text-mute">Open file descriptors</span><span className="font-mono text-ink tnum">{detail.openFds}</span></div>
+                )}
+                <div className="flex justify-between border-b border-edge/40 pb-2"><span className="text-mute">Started</span><span className="font-mono text-ink">{selected.startMs ? fmtDate(selected.startMs) : "—"}</span></div>
+                <div className="flex justify-between border-b border-edge/40 pb-2"><span className="text-mute">Owner</span><span className="font-mono text-ink">{selected.owned ? "you" : "uid " + selected.uid}</span></div>
+                {detail && detail.cmdline && <p className="break-all rounded-lg border border-edge bg-base p-2 font-mono text-[11px] text-mute">{detail.cmdline.slice(0, 220)}</p>}
+              </div>
+              {canSignal ? (
+                <div className="flex flex-wrap gap-2">
+                  <Btn size="sm" tone="warn" icon="pause" disabled={busy || !sys.capabilities.suspendResume} onClick={() => act("suspend")}>Suspend</Btn>
+                  <Btn size="sm" tone="ok" icon="play" disabled={busy || !sys.capabilities.suspendResume} onClick={() => act("resume")}>Resume</Btn>
+                  <Btn size="sm" tone="danger" icon="stop" disabled={busy} onClick={() => act("terminate")}>Terminate</Btn>
+                </div>
+              ) : (
+                <p className="rounded-lg border border-edge bg-panel2 px-3 py-2.5 text-xs text-mute">Signals require the Administrator role. Switch roles at the top right.</p>
+              )}
+              <p className="text-[11px] leading-relaxed text-mute">
+                These buttons send real POSIX signals. The server refuses PID 1, itself, processes owned by other
+                users and a list of critical system processes.
+              </p>
+            </div>
+          ) : <p className="text-sm text-mute">Pick a process from the table above.</p>}
+        </Panel>
+
+        <Panel className="lg:col-span-2" title="Where this process sits in the state model"
+          sub={selected ? `Linux reports "${selected.stateRaw}" — ${selected.stateNote}` : "Select a process to map its real state onto the five-state model"}>
+          <StateDiagram active={selected ? DIAGRAM_NODE[selected.stateRaw] : null} />
+          <div className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
+            {[["R", "Runnable — on a CPU or queued for one"], ["S", "Interruptible sleep, waiting for an event"], ["D", "Uninterruptible sleep, blocked on I/O"], ["T", "Stopped by SIGSTOP"], ["Z", "Zombie — exited, not yet reaped"], ["I", "Idle kernel thread"]].map(([k, v]) => (
+              <div key={k} className="flex gap-2"><span className="font-mono font-semibold text-signal">{k}</span><span className="text-mute">{v}</span></div>
+            ))}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== CPU SCHEDULING ============================== */
+function SchedulingPage({ toast }) {
+  const [list, setList] = useState([]);
+  const [algo, setAlgo] = useState("RR");
+  const [quantum, setQuantum] = useState(2);
+  const [result, setResult] = useState(null);
+  const [count, setCount] = useState(5);
+  const [loaded, setLoaded] = useState(false);
+
+  const loadReal = useCallback(async (n) => {
+    try {
+      const d = await api.get("/api/processes?sort=cpu&limit=60");
+      const picked = d.processes.filter((p) => p.cpuSeconds > 0).slice(0, n);
+      if (!picked.length) return toast("No process has measurable CPU time yet.", "amber");
+      const earliest = Math.min(...picked.map((p) => p.startMs || Date.now()));
+      setList(picked.map((p) => ({
+        pid: String(p.pid), name: p.name,
+        at: Math.max(0, Math.round(((p.startMs || Date.now()) - earliest) / 1000)),
+        bt: Math.max(1, Math.round(p.cpuSeconds)),
+        pr: p.nice === null || p.nice === undefined ? 20 : p.nice + 20
+      })));
+      setResult(null); setLoaded(true);
+    } catch (e) { toast(e.message, "rose"); }
+  }, [toast]);
+
+  useEffect(() => { loadReal(5); }, [loadReal]);
+
+  const algos = [
+    { value: "FCFS", label: "First Come First Served" },
+    { value: "SJF", label: "Shortest Job First (non-preemptive)" },
+    { value: "SRTF", label: "Shortest Remaining Time First (preemptive)" },
+    { value: "RR", label: "Round Robin" },
+    { value: "PRIORITY", label: "Priority (non-preemptive)" }
+  ];
+  const update = (i, k, v) => setList((prev) => prev.map((p, j) => (j === i ? { ...p, [k]: v } : p)));
+  const th = "px-3 py-2 text-left text-[11px] font-semibold tracking-wide text-mute";
+
+  return (
+    <div className="space-y-5">
+      <Panel title="Where these numbers come from" sub="Read this line out in the viva">
+        <p className="max-w-3xl text-[13px] leading-relaxed text-ink">
+          The rows below are real processes taken from this machine. <span className="text-signal">Arrival time</span> is how
+          many seconds after the earliest of them each process was created. <span className="text-signal">Burst time</span> is
+          the CPU time that process has actually consumed, in seconds, from the kernel's own counters.
+          <span className="text-signal"> Priority</span> is its real nice value shifted into a 0–40 scale, so a smaller
+          number means a higher priority. The algorithms then re-schedule that real workload five different ways.
+        </p>
+      </Panel>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel className="lg:col-span-2" title="Workload" sub={loaded ? "Pulled live — edit any cell to explore what-if cases" : "Loading from the process table…"} pad="p-0"
+          right={<div className="flex items-center gap-2">
+            <select value={count} onChange={(e) => { setCount(Number(e.target.value)); loadReal(Number(e.target.value)); }}
+              className="rounded-lg border border-edge bg-base px-2 py-1.5 font-sans text-[12px] text-ink focus:border-signal focus:outline-none">
+              {[3, 5, 7, 10].map((n) => <option key={n} value={n}>Top {n}</option>)}
+            </select>
+            <Btn size="sm" icon="refresh" onClick={() => loadReal(count)}>Reload live</Btn>
+          </div>}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px]">
+              <thead className="border-b border-edge/70 bg-panel2/60">
+                <tr>{["PID", "Process", "Arrival (s)", "Burst (s)", "Priority", ""].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y divide-edge/50">
+                {list.map((p, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-2 font-mono text-[13px] font-semibold" style={{ color: colorFor(p.pid, list) }}>{p.pid}</td>
+                    <td className="px-3 py-2 text-[13px] text-ink">{p.name}</td>
+                    {["at", "bt", "pr"].map((k) => (
+                      <td key={k} className="px-3 py-2">
+                        <input type="number" min="0" value={p[k]} onChange={(e) => update(i, k, Number(e.target.value))}
+                          className="w-24 rounded-md border border-edge bg-base px-2 py-1 text-[13px] text-ink tnum focus:border-signal focus:outline-none" />
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right"><button onClick={() => setList(list.filter((_, j) => j !== i))} className="text-mute hover:text-rose"><Icon name="x" className="h-4 w-4" /></button></td>
+                  </tr>
+                ))}
+                {!list.length && <tr><td colSpan="6" className="px-3 py-10 text-center text-[13px] text-mute">No workload loaded. Press “Reload live”.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+
+        <Panel title="Algorithm" sub="Pick the policy and run it over the live workload">
+          <div className="space-y-3">
+            <Pick value={algo} onChange={setAlgo} options={algos} />
+            {algo === "RR" && <Field label="Time quantum (s)" value={quantum} min={1} onChange={setQuantum} />}
+            <Btn tone="primary" icon="play" onClick={() => setResult({ algo, ...computeSchedule(list, algo, quantum) })}>Run algorithm</Btn>
+            <p className="text-[13px] leading-relaxed text-mute">
+              {{
+                FCFS: "Runs in creation order. One long-lived process at the front delays everything behind it — the convoy effect.",
+                SJF: "Shortest CPU consumer first. Lowest average waiting time, but a heavy process can starve.",
+                SRTF: "Preemptive shortest first. A light process can interrupt a heavy one the moment it arrives.",
+                RR: "Each process gets one quantum in turn — the policy a desktop kernel actually uses for interactivity.",
+                PRIORITY: "Lowest nice value wins the CPU, which is how Linux weights real processes."
+              }[algo]}
+            </p>
+          </div>
+        </Panel>
+      </div>
+
+      {result && (
+        <>
+          <Panel title="Gantt chart" sub={`${algos.find((a) => a.value === result.algo).label}${result.algo === "RR" ? ` · quantum ${quantum}s` : ""} · total ${result.makespan}s`}>
+            <Gantt gantt={result.gantt} procs={list} />
+          </Panel>
+          <div className="grid gap-5 lg:grid-cols-4">
+            <Panel className="lg:col-span-3" title="Results" pad="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead className="border-b border-edge/70 bg-panel2/60"><tr>{["PID", "Process", "AT", "BT", "Completion", "Turnaround", "Waiting", "Response"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+                  <tbody className="divide-y divide-edge/50">
+                    {result.rows.map((r) => (
+                      <tr key={r.pid}>
+                        <td className="px-3 py-2.5 font-mono text-[13px] font-semibold" style={{ color: colorFor(r.pid, list) }}>{r.pid}</td>
+                        <td className="px-3 py-2.5 text-[13px] text-ink">{r.name}</td>
+                        {[r.at, r.bt, r.ct, r.tat, r.wt, r.rt].map((v, i) => <td key={i} className={cx("px-3 py-2.5 font-mono text-[13px] tnum", i < 2 ? "text-mute" : "text-ink")}>{v}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+            <div className="space-y-4">
+              <Stat label="Average waiting time" value={result.avg.wt.toFixed(2)} unit="s" tone="signal" icon="clock" />
+              <Stat label="Average turnaround" value={result.avg.tat.toFixed(2)} unit="s" tone="teal" icon="refresh" />
+              <Stat label="Average response" value={result.avg.rt.toFixed(2)} unit="s" tone="amber" icon="zap" sub={`CPU idle for ${result.idle}s`} />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================== MEMORY ============================== */
+function MemoryPage({ live, toast }) {
+  const [reqs, setReqs] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [strategy, setStrategy] = useState("first");
+  const MB = 1048576;
+
+  const loadReal = useCallback(async () => {
+    try {
+      const d = await api.get("/api/processes?sort=mem&limit=10");
+      const top = d.processes.slice(0, 4);
+      setReqs(top.map((p) => ({ name: p.name, pid: p.pid, size: Math.max(1, Math.round(p.rss / MB)) })));
+      if (live) {
+        const freeMb = Math.round(live.mem.free / MB);
+        setBlocks([Math.round(freeMb * 0.3), Math.round(freeMb * 0.45), Math.round(freeMb * 0.12), Math.round(freeMb * 0.08), Math.round(freeMb * 0.05)].map((v) => Math.max(1, v)));
+      }
+    } catch (e) { toast(e.message, "rose"); }
+  }, [live, toast]);
+
+  useEffect(() => { if (!reqs.length && live) loadReal(); }, [live, reqs.length, loadReal]);
+
+  const out = useMemo(() => (blocks.length ? allocateMemory(blocks, reqs, strategy) : null), [blocks, reqs, strategy]);
+  if (!live || !out) return <Waiting />;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Stat label="Physical memory" value={(live.mem.total / 1073741824).toFixed(1)} unit="GB" icon="memory" tone="signal" sub="Reported by the kernel" />
+        <Stat label="In use" value={(live.mem.used / 1073741824).toFixed(2)} unit="GB" bar={live.mem.pct} tone="teal" icon="cpu" sub={`${live.mem.pct.toFixed(1)}% of physical memory`} />
+        <Stat label="Available" value={(live.mem.free / 1073741824).toFixed(2)} unit="GB" tone="grn" icon="check" sub="MemAvailable, including reclaimable cache" />
+        <Stat label="Fragmentation in this layout" value={out.internal + out.external} unit="MB" tone="amber" icon="alert" sub={`${out.internal} MB internal · ${out.external} MB external`} />
+      </div>
+
+      <Panel title="Placement policy" sub="Real process footprints placed into partitions carved from your real free memory"
+        right={<div className="flex gap-1.5">
+          {[["first", "First fit"], ["best", "Best fit"], ["worst", "Worst fit"]].map(([v, l]) => (
+            <button key={v} onClick={() => setStrategy(v)} className={cx("rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors", strategy === v ? "border-signal bg-signal/15 text-signal" : "border-edge bg-panel2 text-mute hover:text-ink")}>{l}</button>
+          ))}
+        </div>}>
+        <div className="space-y-3">
+          {out.blocks.map((b, i) => {
+            const usedPct = b.holder ? (b.used / b.size) * 100 : 0;
+            return (
+              <div key={b.id} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex w-36 shrink-0 items-center gap-2">
+                  <span className="font-mono text-sm font-semibold text-ink">{b.id}</span>
+                  <input type="number" min="1" value={blocks[i]} onChange={(e) => setBlocks(blocks.map((x, j) => (j === i ? Number(e.target.value) : x)))}
+                    className="w-20 rounded border border-edge bg-base px-1.5 py-1 text-[12px] text-ink tnum focus:border-signal focus:outline-none" />
+                  <span className="text-[11px] text-mute">MB</span>
+                </div>
+                <div className="relative h-11 flex-1 overflow-hidden rounded-lg border border-edge bg-base">
+                  {b.holder ? (
+                    <>
+                      <div className="absolute inset-y-0 left-0 flex items-center bg-signal/20 px-3" style={{ width: usedPct + "%", borderRight: "1px solid #7C5CFF" }}>
+                        <span className="truncate text-xs font-medium text-ink">{b.holder} · {b.used} MB</span>
+                      </div>
+                      {b.remaining > 0 && (
+                        <div className="absolute inset-y-0 right-0 flex items-center justify-end px-3" style={{ width: 100 - usedPct + "%", background: "repeating-linear-gradient(45deg,#1a2338,#1a2338 5px,#141d31 5px,#141d31 10px)" }}>
+                          <span className="font-mono text-[11px] text-amber">{b.remaining} MB wasted inside</span>
+                        </div>
+                      )}
+                    </>
+                  ) : <div className="flex h-full items-center px-3"><span className="text-xs text-grn">Free · {b.size} MB</span></div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <div>
+            <h3 className="mb-2.5 text-[13px] font-semibold text-ink">Allocation outcome</h3>
+            <ul className="space-y-2">
+              {out.results.map((r, i) => (
+                <li key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-edge bg-panel2 px-3 py-2.5 text-[13px]">
+                  <span className="text-ink">{r.name} <span className="font-mono text-mute">PID {r.pid} · {r.size} MB</span></span>
+                  {r.block ? <Tag tone="grn">Into {r.block}{r.internal ? ` · ${r.internal} MB internal` : ""}</Tag> : <Tag tone="rose">No partition large enough</Tag>}
+                </li>
+              ))}
+            </ul>
+            <Btn size="sm" icon="refresh" onClick={loadReal}>Re-read live footprints</Btn>
+          </div>
+          <div className="text-[13px] leading-relaxed text-mute">
+            <h3 className="mb-2.5 text-[13px] font-semibold text-ink">What is real here</h3>
+            <p>The four requests are the real resident set sizes of the four largest processes on this machine right now,
+              and the total free memory is the kernel's own MemAvailable figure.</p>
+            <p className="mt-2">The five partitions are a model laid over that free memory, because a modern kernel uses paging
+              rather than fixed partitions. That model is what lets you compare first, best and worst fit — say exactly this if
+              you are asked whether the fragmentation is real.</p>
+            <p className="mt-2">Right now: {out.internal} MB is locked inside partitions bigger than the process needed, and
+              {" " + out.external} MB sits in partitions nothing could use.</p>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================== DEADLOCK ============================== */
+function DeadlockPage({ live, toast }) {
+  const [available, setAvailable] = useState([3, 3, 2]);
+  const [procs, setProcs] = useState([]);
+  const [blocked, setBlocked] = useState([]);
+  const RES = ["Computer Labs", "Printers", "Projectors"];
+
+  const seedFromReal = useCallback(async () => {
+    try {
+      const d = await api.get("/api/processes?sort=cpu&limit=20");
+      const picked = d.processes.slice(0, 5);
+      const maxes = [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]];
+      const allocs = [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]];
+      setProcs(picked.map((p, i) => ({ name: p.name, pid: p.pid, max: maxes[i], alloc: allocs[i] })));
+    } catch (e) { toast(e.message, "rose"); }
+  }, [toast]);
+
+  const loadBlocked = useCallback(async () => {
+    try {
+      const d = await api.get("/api/processes?sort=cpu&limit=400");
+      setBlocked(d.processes.filter((p) => p.stateRaw === "D"));
+    } catch (_) { /* ignore */ }
+  }, []);
+
+  useEffect(() => { seedFromReal(); loadBlocked(); const t = setInterval(loadBlocked, 3000); return () => clearInterval(t); }, [seedFromReal, loadBlocked]);
+
+  const out = useMemo(() => (procs.length ? bankers(available, procs) : null), [available, procs]);
+  const edit = (i, kind, j, v) => setProcs(procs.map((p, k) => (k === i ? { ...p, [kind]: p[kind].map((x, l) => (l === j ? Number(v) || 0 : x)) } : p)));
+  const inputCls = "w-12 rounded border border-edge bg-base px-1.5 py-1 text-center text-[13px] text-ink tnum focus:border-signal focus:outline-none";
+
+  return (
+    <div className="space-y-5">
+      <Panel title="Blocked right now" sub="Processes the kernel reports in uninterruptible sleep (state D) — genuinely stuck on I/O">
+        {blocked.length ? (
+          <ul className="space-y-2">
+            {blocked.map((p) => (
+              <li key={p.pid} className="flex items-center justify-between rounded-lg border border-rose/40 bg-rose/10 px-3 py-2.5">
+                <span className="text-[13px] text-ink">{p.name} <span className="font-mono text-mute">PID {p.pid}</span></span>
+                <Tag tone="rose">Blocked on I/O</Tag>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-grn/30 bg-grn/[0.07] px-4 py-4">
+            <Icon name="check" className="h-5 w-5 shrink-0 text-grn" />
+            <p className="text-[13px] leading-relaxed text-ink">
+              Nothing is blocked. The kernel's run queue shows {live && live.kernel.blocked !== null ? live.kernel.blocked : "—"} blocked
+              and {live && live.kernel.running !== null ? live.kernel.running : "—"} runnable processes. A process appears here
+              the moment it waits on a device that does not answer — try copying a large file to a slow USB drive.
+            </p>
+          </div>
+        )}
+      </Panel>
+
+      {out && (
+        <div className={cx("rounded-xl border p-5", out.error || !out.safe ? "border-rose/50 bg-rose/10" : "border-grn/40 bg-grn/[0.08]")}>
+          <div className="flex items-start gap-3">
+            <Icon name={out.safe && !out.error ? "check" : "alert"} className={cx("mt-0.5 h-6 w-6 shrink-0", out.safe && !out.error ? "text-grn" : "text-rose")} />
+            <div>
+              <h2 className={cx("text-base font-semibold", out.safe && !out.error ? "text-grn" : "text-rose")}>
+                {out.error ? "Invalid input" : out.safe ? "Safe state" : "Unsafe state — deadlock is possible"}
+              </h2>
+              {out.error ? <p className="mt-1 text-sm text-ink">{out.error}</p> : out.safe ? (
+                <p className="mt-1.5 text-sm leading-relaxed text-ink">Every process can finish if they run in this order:
+                  <span className="ml-2 font-mono text-grn">{out.seq.map((i) => procs[i].name).join("  →  ")}</span></p>
+              ) : (
+                <p className="mt-1.5 text-sm leading-relaxed text-ink">No safe sequence exists. {out.blocked.map((i) => procs[i].name).join(", ")} could never be guaranteed enough resources, so the kernel would refuse the request.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Panel title="Available campus resources" sub="Units the allocator can still hand out in this what-if model">
+        <div className="flex flex-wrap gap-4">
+          {RES.map((r, j) => <div key={r} className="w-40"><Field label={r} value={available[j]} onChange={(v) => setAvailable(available.map((x, k) => (k === j ? Number(v) || 0 : x)))} /></div>)}
+        </div>
+      </Panel>
+
+      <Panel title="Banker's algorithm" sub="Rows are real processes from this machine; the claim matrix is the what-if you control" pad="p-0"
+        right={<Btn size="sm" icon="refresh" onClick={seedFromReal}>Re-seed from live</Btn>}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]">
+            <thead>
+              <tr className="border-b border-edge/70 bg-panel2/60">
+                <th rowSpan="2" className="px-3 py-2 text-left text-[11px] font-semibold text-mute">Process</th>
+                {["Maximum claim", "Allocated", "Still needs"].map((h) => <th key={h} colSpan="3" className="border-l border-edge/70 px-3 py-1.5 text-center text-[11px] font-semibold text-mute">{h}</th>)}
+              </tr>
+              <tr className="border-b border-edge/70 bg-panel2/40">
+                {[0, 1, 2].map((g) => RES.map((r, j) => (
+                  <th key={g + "-" + j} className={cx("px-2 py-1.5 text-center font-mono text-[10px] text-mute", j === 0 && "border-l border-edge/70")}>{r.split(" ")[0].slice(0, 4)}</th>
+                )))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-edge/50">
+              {procs.map((p, i) => (
+                <tr key={i} className={cx(out && !out.error && !out.safe && out.blocked.includes(i) && "bg-rose/[0.07]")}>
+                  <td className="px-3 py-2 text-[13px] text-ink"><span className="font-mono text-mute">{p.pid}</span> · {p.name}</td>
+                  {p.max.map((v, j) => <td key={"m" + j} className={cx("px-2 py-1.5 text-center", j === 0 && "border-l border-edge/50")}><input className={inputCls} type="number" min="0" value={v} onChange={(e) => edit(i, "max", j, e.target.value)} /></td>)}
+                  {p.alloc.map((v, j) => <td key={"a" + j} className={cx("px-2 py-1.5 text-center", j === 0 && "border-l border-edge/50")}><input className={inputCls} type="number" min="0" value={v} onChange={(e) => edit(i, "alloc", j, e.target.value)} /></td>)}
+                  {out && out.need[i].map((v, j) => <td key={"n" + j} className={cx("px-2 py-1.5 text-center font-mono text-[13px] tnum", j === 0 && "border-l border-edge/50", v < 0 ? "text-rose" : "text-teal")}>{v}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="grid gap-3 border-t border-edge/60 p-4 sm:grid-cols-2">
+          <button onClick={() => setAvailable([3, 3, 2])} className="rounded-lg border border-edge bg-panel2 p-4 text-left transition-colors hover:border-grn/50">
+            <Tag tone="grn">Safe</Tag><p className="mt-2 text-[13px] text-ink">Three labs, three printers and two projectors free.</p>
+          </button>
+          <button onClick={() => setAvailable([0, 0, 0])} className="rounded-lg border border-edge bg-panel2 p-4 text-left transition-colors hover:border-rose/50">
+            <Tag tone="rose">Unsafe</Tag><p className="mt-2 text-[13px] text-ink">Nothing free — every process holds something and wants more.</p>
+          </button>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================== RESOURCES ============================== */
+function ResourcesPage({ live, sys }) {
+  if (!live) return <Waiting />;
+  const top = live.top || [];
+  return (
+    <div className="space-y-5">
+      <Panel title="Processor cores" sub={sys.cpuModel}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {live.cpu.perCore.map((v, i) => (
+            <div key={i} className="rounded-lg border border-edge bg-panel2 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-mono text-[12px] text-mute">core {i}</span>
+                <span className="font-mono text-[13px] font-semibold text-ink tnum">{v.toFixed(0)}%</span>
+              </div>
+              <Bar value={v} tone={v > 85 ? "rose" : v > 55 ? "amber" : "signal"} height="h-1.5" />
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title="Memory" sub="Physical RAM allocation across the system">
+          <div className="mb-3 flex items-baseline justify-between">
+            <span className="font-mono text-2xl font-semibold text-teal tnum">{(live.mem.used / 1073741824).toFixed(2)} <span className="text-sm text-mute">/ {(live.mem.total / 1073741824).toFixed(1)} GB</span></span>
+            <span className="font-mono text-sm text-mute tnum">{live.mem.pct.toFixed(1)}%</span>
+          </div>
+          <Bar value={live.mem.pct} tone="teal" height="h-3" />
+          <ul className="mt-4 space-y-2">
+            {top.slice(0, 5).map((p) => (
+              <li key={p.pid} className="flex items-center gap-2 text-[12px]">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+                <span className="truncate text-ink">{p.name}</span>
+                <span className="ml-auto font-mono text-mute tnum">{fmtBytes(p.rss)}</span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+
+        <Panel title="Storage" sub="Mounted file systems reported by the OS">
+          <ul className="space-y-4">
+            {(live.disks || []).map((d) => (
+              <li key={d.mount}>
+                <div className="mb-1.5 flex items-center justify-between text-[13px]">
+                  <span className="flex items-center gap-2 text-ink"><Icon name="drive" className="h-4 w-4 text-mute" />{d.mount}</span>
+                  <span className="font-mono text-mute tnum">{fmtBytes(d.used)} / {fmtBytes(d.total)}</span>
+                </div>
+                <Bar value={d.pct} tone={d.pct > 90 ? "rose" : d.pct > 70 ? "amber" : "grn"} />
+              </li>
+            ))}
+            {!(live.disks || []).length && <li className="text-[13px] text-mute">No mounted volume could be read on this platform.</li>}
+          </ul>
+        </Panel>
+      </div>
+
+      <Panel title="Network interfaces" sub="Byte counters straight from the kernel, converted to throughput">
+        <div className="mb-4 grid gap-4 sm:grid-cols-3">
+          <Stat label="Download" value={live.net.rxMbps === null ? "—" : live.net.rxMbps.toFixed(2)} unit="Mbps" tone="signal" icon="wifi" />
+          <Stat label="Upload" value={live.net.txMbps === null ? "—" : live.net.txMbps.toFixed(2)} unit="Mbps" tone="teal" icon="wifi" />
+          <Stat label="Interfaces" value={(live.net.ifaces || []).length} unit="up" tone="amber" icon="server" />
+        </div>
+        <ul className="divide-y divide-edge/50">
+          {(live.net.ifaces || []).map((i) => (
+            <li key={i.name} className="flex items-center justify-between py-2.5 text-[13px]">
+              <span className="font-mono text-ink">{i.name}</span>
+              <span className="font-mono text-mute tnum">{fmtBytes(i.rxBytes)} in · {fmtBytes(i.txBytes)} out</span>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
+      <Panel title="Who holds what" sub="Process to resource, taken from the live table">
+        <div className="space-y-2.5">
+          {top.slice(0, 8).map((p) => (
+            <div key={p.pid} className="flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-panel2 px-4 py-3">
+              <span className="w-52 shrink-0 truncate text-[13px] font-medium text-ink">{p.name}</span>
+              <span className="font-mono text-[11px] text-mute">PID {p.pid}</span>
+              <Icon name="chevron" className="h-4 w-4 shrink-0 text-mute" />
+              <div className="flex flex-wrap gap-1.5">
+                <Tag tone="signal">CPU {p.cpuPct === null ? "—" : pct1(p.cpuPct) + "%"}</Tag>
+                <Tag tone="teal">RAM {fmtBytes(p.rss)}</Tag>
+              </div>
+              <span className="ml-auto"><Tag tone={STATE_TONE[p.state] || "mute"}>{p.state}</Tag></span>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================== FILES ============================== */
+function FilesPage({ role, toast, sys }) {
+  const [dir, setDir] = useState("");
+  const [data, setData] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [newName, setNewName] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(null);
+  const [rename, setRename] = useState("");
+  const [preview, setPreview] = useState(null);
+  const canEdit = role !== "Student";
+
+  const load = useCallback((p) => {
+    api.get("/api/files?path=" + encodeURIComponent(p)).then((d) => { setData(d); setSel(null); setPreview(null); }).catch((e) => toast(e.message, "rose"));
+  }, [toast]);
+
+  useEffect(() => { load(dir); }, [dir, load]);
+  useEffect(() => {
+    if (!query.trim()) { setResults(null); return; }
+    const t = setTimeout(() => api.get("/api/files/search?q=" + encodeURIComponent(query)).then((d) => setResults(d.results)).catch(() => {}), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const crumbs = ["campus-data", ...(dir ? dir.split("/") : [])];
+  const goCrumb = (i) => setDir(i === 0 ? "" : dir.split("/").slice(0, i).join("/"));
+
+  const create = async (kind) => {
+    if (!newName.trim()) return toast("Give it a name first.", "amber");
+    try { await api.send("/api/files", "POST", { path: dir, name: newName.trim(), kind }); setNewName(""); load(dir); toast(`${kind === "folder" ? "Folder" : "File"} created on disk`, "grn"); }
+    catch (e) { toast(e.message, "rose"); }
+  };
+  const doRename = async () => {
+    if (!sel || !rename.trim()) return;
+    try { await api.send("/api/files", "PATCH", { path: sel.path, name: rename.trim() }); setRename(""); load(dir); toast("Renamed on disk", "grn"); }
+    catch (e) { toast(e.message, "rose"); }
+  };
+  const doDelete = async () => {
+    if (!sel || !window.confirm(`Delete "${sel.name}" from disk permanently?`)) return;
+    try { await api.send("/api/files", "DELETE", { path: sel.path }); load(dir); toast("Deleted from disk", "grn"); }
+    catch (e) { toast(e.message, "rose"); }
+  };
+  const openFile = async (e) => {
+    setSel(e);
+    if (e.type === "folder") { setDir(e.path); return; }
+    try { setPreview(await api.get("/api/files/read?path=" + encodeURIComponent(e.path))); }
+    catch (err) { toast(err.message, "rose"); }
+  };
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-3">
+      <Panel className="lg:col-span-2" title="Campus file system" sub={sys.sandbox}
+        right={<div className="relative">
+          <Icon name="search" className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-mute" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search all folders"
+            className="w-48 rounded-lg border border-edge bg-base py-2 pl-8 pr-3 font-sans text-[13px] text-ink placeholder:text-mute/70 focus:border-signal focus:outline-none" />
+        </div>}>
+        <nav className="mb-3 flex flex-wrap items-center gap-1 text-[13px]">
+          {crumbs.map((c, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 && <span className="text-mute">/</span>}
+              <button onClick={() => goCrumb(i)} className={cx("rounded px-1.5 py-0.5 font-mono", i === crumbs.length - 1 ? "text-ink" : "text-mute hover:text-ink")}>{c}</button>
+            </span>
+          ))}
+        </nav>
+
+        {results ? (
+          <ul className="space-y-1.5">
+            {results.length ? results.map((e) => (
+              <li key={e.path}>
+                <button onClick={() => { setQuery(""); setDir(e.type === "folder" ? e.path : e.path.split("/").slice(0, -1).join("/")); }}
+                  className="flex w-full items-center gap-3 rounded-lg border border-edge bg-panel2 px-3 py-2.5 text-left hover:border-signal/50">
+                  <Icon name={e.type === "folder" ? "folder" : "file"} className="h-4 w-4 text-mute" />
+                  <span className="text-[13px] text-ink">{e.name}</span>
+                  <span className="ml-auto font-mono text-[11px] text-mute">/{e.path}</span>
+                </button>
+              </li>
+            )) : <li className="rounded-lg border border-edge bg-panel2 px-3 py-6 text-center text-[13px] text-mute">Nothing on disk matched “{query}”.</li>}
+          </ul>
+        ) : data ? (
+          <ul className="divide-y divide-edge/50">
+            {data.children && data.children.length ? data.children.map((e) => (
+              <li key={e.path}>
+                <button onClick={() => openFile(e)} className={cx("flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors hover:bg-panel2/70", sel && sel.path === e.path && "bg-signal/[0.07]")}>
+                  <Icon name={e.type === "folder" ? "folder" : "file"} className={cx("h-4 w-4", e.type === "folder" ? "text-signal" : "text-mute")} />
+                  <span className="text-[13px] text-ink">{e.name}</span>
+                  <span className="ml-auto font-mono text-[11px] text-mute tnum">{e.type === "folder" ? `${e.contents.files} files · ${fmtBytes(e.contents.total)}` : fmtBytes(e.size)}</span>
+                </button>
+              </li>
+            )) : <li className="px-2 py-8 text-center text-[13px] text-mute">This directory is empty on disk. {canEdit ? "Create something below." : ""}</li>}
+          </ul>
+        ) : <Waiting />}
+
+        {canEdit && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-edge/60 pt-4">
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Name, e.g. unit3_notes.txt"
+              className="min-w-[200px] flex-1 rounded-lg border border-edge bg-base px-3 py-2 font-sans text-[13px] text-ink placeholder:text-mute/70 focus:border-signal focus:outline-none" />
+            <Btn size="sm" icon="folder" onClick={() => create("folder")}>New folder</Btn>
+            <Btn size="sm" tone="primary" icon="file" onClick={() => create("file")}>New file</Btn>
+          </div>
+        )}
+      </Panel>
+
+      <Panel title="Inode details" sub={sel ? "Read with fs.stat from the real file system" : "Nothing selected"}>
+        {sel ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-signal/12 text-signal"><Icon name={sel.type === "folder" ? "folder" : "file"} className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <p className="truncate text-[14px] font-semibold text-ink">{sel.name}</p>
+                <p className="text-[11px] text-mute">{sel.type === "folder" ? "Directory" : (sel.ext || "no").toUpperCase() + " file"}</p>
+              </div>
+            </div>
+            <dl className="space-y-2 text-[13px]">
+              {[["Inode", sel.inode], ["Size", fmtBytes(sel.size)], ["Blocks", `${sel.blocks} × ${sel.blockSize}B`], ["Permissions", `${sel.mode} (${sel.modeOctal})`],
+                ["Hard links", sel.links], ["Owner uid", sel.uid], ["Created", fmtDate(sel.created)], ["Modified", fmtDate(sel.modified)], ["Path", "/" + sel.path]].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-3 border-b border-edge/40 pb-2"><dt className="text-mute">{k}</dt><dd className="truncate font-mono text-ink">{String(v)}</dd></div>
+              ))}
+            </dl>
+            {preview && preview.content !== null && (
+              <div>
+                <p className="mb-1.5 text-[11px] text-mute">Contents{preview.truncated ? " (truncated)" : ""}</p>
+                <pre className="max-h-40 overflow-auto rounded-lg border border-edge bg-base p-3 font-mono text-[11px] leading-relaxed text-ink">{preview.content || "(empty file)"}</pre>
+              </div>
+            )}
+            {preview && preview.binary && <p className="rounded-lg border border-edge bg-panel2 px-3 py-2 text-xs text-mute">Binary file — not shown as text.</p>}
+            {canEdit ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input value={rename} onChange={(e) => setRename(e.target.value)} placeholder="New name"
+                    className="min-w-0 flex-1 rounded-lg border border-edge bg-base px-3 py-2 font-sans text-[13px] text-ink placeholder:text-mute/70 focus:border-signal focus:outline-none" />
+                  <Btn size="sm" icon="pencil" onClick={doRename}>Rename</Btn>
+                </div>
+                <Btn size="sm" tone="danger" icon="trash" onClick={doDelete}>Delete from disk</Btn>
+              </div>
+            ) : <p className="rounded-lg border border-edge bg-panel2 px-3 py-2.5 text-xs text-mute">Student accounts have read permission only.</p>}
+          </div>
+        ) : (
+          <p className="text-[13px] leading-relaxed text-mute">
+            Open a folder to descend into it, or click a file to read its real inode entry — inode number, block count,
+            permission bits, hard links and timestamps, all from the operating system.
+          </p>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+/* ============================== MONITORING ============================== */
+function MonitorPage({ live, sys }) {
+  if (!live) return <Waiting />;
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="CPU" value={live.cpu.overall.toFixed(0)} unit="%" bar={live.cpu.overall} tone={live.cpu.overall > 85 ? "rose" : "signal"} icon="cpu" sub={`${sys.cores} cores`} />
+        <Stat label="Memory" value={live.mem.pct.toFixed(0)} unit="%" bar={live.mem.pct} tone={live.mem.pct > 85 ? "rose" : "teal"} icon="memory" sub={fmtBytes(live.mem.free) + " free"} />
+        <Stat label="Network" value={live.net.totalMbps === null ? "—" : live.net.totalMbps.toFixed(2)} unit="Mbps" tone="amber" icon="wifi" sub="Receive plus transmit" />
+        <Stat label="Disk" value={live.disks && live.disks[0] ? live.disks[0].pct.toFixed(0) : "—"} unit="%" bar={live.disks && live.disks[0] ? live.disks[0].pct : 0} tone="grn" icon="drive" sub={live.disks && live.disks[0] ? live.disks[0].mount : ""} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title="CPU usage" sub="Last 60 seconds"><AreaChart data={live.cpuHist} color="#7C5CFF" height={150} /></Panel>
+        <Panel title="Memory usage" sub="Last 60 seconds"><AreaChart data={live.memHist} color="#2DD4BF" height={150} /></Panel>
+        <Panel title="Network throughput" sub="Megabits per second, both directions"><AreaChart data={live.netHist} color="#F5A524" max="auto" unit=" Mbps" height={150} /></Panel>
+        <Panel title="Context switches" sub="Kernel switches per second"><AreaChart data={live.ctxtHist} color="#3FCF8E" max="auto" unit="/s" height={150} /></Panel>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Panel className="lg:col-span-2" title="Top processes" sub="Ordered by CPU share this second" pad="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead className="border-b border-edge/70 bg-panel2/60"><tr>{["PID", "Process", "State", "CPU", "Memory"].map((h) => <th key={h} className="px-3 py-2 text-left text-[11px] font-semibold text-mute">{h}</th>)}</tr></thead>
+              <tbody className="divide-y divide-edge/50">
+                {(live.top || []).map((p) => (
+                  <tr key={p.pid}>
+                    <td className="px-3 py-2.5 font-mono text-[13px] text-mute">{p.pid}</td>
+                    <td className="px-3 py-2.5 text-[13px] text-ink">{p.name}</td>
+                    <td className="px-3 py-2.5"><Tag tone={STATE_TONE[p.state] || "mute"}>{p.stateRaw}</Tag></td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-24"><Bar value={p.cpuPct || 0} tone="signal" height="h-1.5" /></div>
+                        <span className="font-mono text-[12px] text-mute tnum">{p.cpuPct === null ? "—" : pct1(p.cpuPct) + "%"}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-[13px] text-mute tnum">{fmtBytes(p.rss)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+        <Panel title="System alerts" sub="Raised when a real threshold is crossed">
+          {(live.alerts || []).length ? (
+            <ul className="space-y-2.5">
+              {live.alerts.map((a, i) => (
+                <li key={i} className={cx("rounded-lg border px-3 py-2.5", a.level === "critical" ? "border-rose/40 bg-rose/10" : "border-amber/40 bg-amber/10")}>
+                  <div className="flex items-start gap-2">
+                    <Icon name="alert" className={cx("mt-0.5 h-4 w-4 shrink-0", a.level === "critical" ? "text-rose" : "text-amber")} />
+                    <div><p className="text-[13px] text-ink">{a.text}</p><p className="mt-0.5 font-mono text-[11px] text-mute">{fmtTime(a.at)}</p></div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="rounded-lg border border-grn/30 bg-grn/[0.07] px-3 py-6 text-center">
+              <Icon name="check" className="mx-auto h-6 w-6 text-grn" />
+              <p className="mt-2 text-[13px] text-ink">All subsystems within limits.</p>
+              <p className="mt-1 text-[11px] text-mute">Alerts appear when CPU or memory passes 85%.</p>
+            </div>
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== CONCEPTS ============================== */
+const CONCEPTS = [
+  { icon: "list", title: "Process management", real: "Every row of the process table is a real PCB read from the kernel: PID, parent, state letter, CPU time, RSS, thread count and context-switch counts.",
+    demo: "Open Process Management, select any process, and read its real state letter off the five-state diagram.", where: "Process Management" },
+  { icon: "cpu", title: "CPU scheduling", real: "The workload is real: arrival times are real creation times, burst times are real accumulated CPU seconds, priorities are real nice values.",
+    demo: "Run Round Robin and then SRTF on the same live workload and compare average waiting time.", where: "CPU Scheduling" },
+  { icon: "memory", title: "Memory management", real: "Total, used and available memory are the kernel's own figures, and the allocation requests are the real footprints of the largest processes.",
+    demo: "Switch between first, best and worst fit and watch which real process fails to get a partition.", where: "Memory Management" },
+  { icon: "server", title: "Resource allocation", real: "Per-core CPU load, mounted volumes and network byte counters are all read from the operating system each second.",
+    demo: "Open a video in another window and watch a single core spike on the Resource page.", where: "Resource Management" },
+  { icon: "alert", title: "Deadlock", real: "The blocked-process list is live: it shows processes the kernel has placed in uninterruptible sleep, waiting on I/O that has not returned.",
+    demo: "Run the Banker's what-if beneath it, then press the Unsafe preset to show a refused request.", where: "Deadlock Detection" },
+  { icon: "folder", title: "File management", real: "Create, rename and delete write to real files on disk. Inode numbers, block counts, permission bits and timestamps come from fs.stat.",
+    demo: "Create a file, then open a terminal and run ls -li on the campus-data folder to prove it exists.", where: "File Management" },
+  { icon: "refresh", title: "Synchronisation", real: "Each process detail shows its voluntary and involuntary context switches — a voluntary switch is a process yielding at a blocking call.",
+    demo: "Compare a busy process with an idle one and explain which kind of switch dominates and why.", where: "Process Management" },
+  { icon: "shield", title: "Protection and security", real: "The server refuses signals to PID 1, to itself, to critical system processes and to processes owned by other users, and the file API cannot escape its sandbox directory.",
+    demo: "As Student, show that the signal buttons are gone; as Administrator, suspend a process you started yourself.", where: "Process Management" }
+];
+
+function ConceptsPage({ go, sys }) {
+  return (
+    <div className="space-y-5">
+      <Panel title="What is real and what is modelled" sub="Be able to answer this precisely — it is the question examiners ask">
+        <div className="max-w-3xl space-y-3 text-[14px] leading-relaxed text-ink">
+          <p>This prototype talks to a small Node server running on {sys.hostname}. That server reads the process table,
+            memory counters, disk table, network counters and file system of this machine directly, once a second.</p>
+          <p className="text-mute">Two things are deliberately models rather than measurements, and saying so is the strongest
+            answer you can give: the fixed memory partitions on the Memory page, because a modern kernel uses paging, not fixed
+            partitions; and the Banker's claim matrix, because processes do not publish their maximum future resource needs to
+            the OS. Both are laid over real data — real process footprints and real process names.</p>
+        </div>
+      </Panel>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {CONCEPTS.map((c) => (
+          <div key={c.title} className="rounded-xl border border-edge bg-panel p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-8 w-8 place-items-center rounded-md bg-signal/12 text-signal"><Icon name={c.icon} className="h-4 w-4" /></span>
+              <h3 className="text-[15px] font-semibold text-ink">{c.title}</h3>
+            </div>
+            <div className="mt-3.5 space-y-2.5 text-[13px] leading-relaxed">
+              <p className="text-ink"><span className="text-signal">Live data — </span>{c.real}</p>
+              <p className="text-mute"><span className="text-teal">Show it — </span>{c.demo}</p>
+            </div>
+            <button onClick={() => go(NAV.find((n) => n.label === c.where).id)} className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-signal hover:underline">
+              Open {c.where} <Icon name="chevron" className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================== SHELL ============================== */
+function Waiting() {
+  return (
+    <div className="grid place-items-center rounded-xl border border-edge bg-panel py-20">
+      <div className="text-center">
+        <Icon name="refresh" className="mx-auto h-6 w-6 animate-spin text-signal" />
+        <p className="mt-3 text-[13px] text-mute">Reading from the kernel…</p>
+      </div>
+    </div>
+  );
+}
+
+function Offline() {
+  return (
+    <div className="grid min-h-screen place-items-center px-6">
+      <div className="max-w-md rounded-xl border border-rose/40 bg-rose/10 p-6 text-center">
+        <Icon name="alert" className="mx-auto h-7 w-7 text-rose" />
+        <h1 className="mt-3 text-lg font-semibold text-ink">Not connected to the campus OS server</h1>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink">This dashboard reads live data from a local server. Start it from the project folder:</p>
+        <pre className="mt-3 rounded-lg border border-edge bg-base p-3 text-left font-mono text-[12px] text-teal">node server.js</pre>
+        <p className="mt-3 text-[12px] text-mute">Then open http://127.0.0.1:4173 — this page reconnects on its own.</p>
+      </div>
+    </div>
+  );
+}
+
+const HIST = 60;
+const push = (arr, v) => { const a = [...(arr || []), v]; return a.length > HIST ? a.slice(a.length - HIST) : a; };
+
+function App() {
+  const [page, setPage] = useState("dashboard");
+  const [role, setRole] = useState("Administrator");
+  const [navOpen, setNavOpen] = useState(false);
+  const [sys, setSys] = useState(null);
+  const [live, setLive] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const histRef = useRef({ cpu: [], mem: [], net: [], ctxt: [] });
+
+  const toast = useCallback((text, tone) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts((t) => [...t, { id, text, tone }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
+  }, []);
+
+  useEffect(() => {
+    api.get("/api/system").then(setSys).catch(() => setSys(null));
+    const es = new EventSource("/api/stream");
+    es.addEventListener("metrics", (ev) => {
+      const d = JSON.parse(ev.data);
+      const h = histRef.current;
+      h.cpu = push(h.cpu, d.cpu.overall);
+      h.mem = push(h.mem, d.mem.pct);
+      h.net = push(h.net, d.net.totalMbps === null ? 0 : d.net.totalMbps);
+      h.ctxt = push(h.ctxt, d.kernel.ctxtRate === null ? 0 : d.kernel.ctxtRate);
+      setLive({ ...d, cpuHist: h.cpu, memHist: h.mem, netHist: h.net, ctxtHist: h.ctxt });
+      setConnected(true);
+    });
+    es.onerror = () => setConnected(false);
+    return () => es.close();
+  }, []);
+
+  useEffect(() => { if (!NAV.find((n) => n.id === page && n.roles.includes(role))) setPage("dashboard"); }, [role, page]);
+
+  if (!sys) return <Offline />;
+
+  const go = (id) => { setPage(id); setNavOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const current = NAV.find((n) => n.id === page);
+  const body = (() => {
+    switch (page) {
+      case "processes": return <ProcessesPage live={live} sys={sys} role={role} toast={toast} />;
+      case "scheduling": return <SchedulingPage toast={toast} />;
+      case "memory": return <MemoryPage live={live} toast={toast} />;
+      case "deadlock": return <DeadlockPage live={live} toast={toast} />;
+      case "resources": return <ResourcesPage live={live} sys={sys} />;
+      case "files": return <FilesPage role={role} toast={toast} sys={sys} />;
+      case "monitor": return <MonitorPage live={live} sys={sys} />;
+      case "concepts": return <ConceptsPage go={go} sys={sys} />;
+      default: return <DashboardPage live={live} sys={sys} go={go} role={role} />;
+    }
+  })();
+
+  const NavList = () => (
+    <nav className="space-y-1">
+      {NAV.map((n) => {
+        const ok = n.roles.includes(role), active = page === n.id;
+        return (
+          <button key={n.id} onClick={() => ok && go(n.id)} disabled={!ok}
+            className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[13px] transition-colors",
+              active ? "bg-signal/15 text-ink" : ok ? "text-mute hover:bg-panel2 hover:text-ink" : "cursor-not-allowed text-mute/40")}>
+            <Icon name={ok ? n.icon : "lock"} className={cx("h-4 w-4 shrink-0", active && "text-signal")} />
+            <span className="flex-1 font-medium">{n.label}</span>
+            {active && <span className="h-1.5 w-1.5 rounded-full bg-signal" />}
+          </button>
+        );
+      })}
+    </nav>
+  );
+
+  return (
+    <div className="min-h-screen">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-edge bg-panel/95 lg:flex" style={{ paddingTop: "env(safe-area-inset-top,0px)" }}>
+        <div className="flex items-center gap-2.5 border-b border-edge px-5 py-4">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-signal text-white"><Icon name="cap" className="h-5 w-5" /></span>
+          <div className="leading-tight">
+            <p className="text-[13px] font-semibold text-ink">Campus OS</p>
+            <p className="font-mono text-[10px] text-mute">{sys.hostname}</p>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3"><NavList /></div>
+        <div className="border-t border-edge p-4">
+          <p className="text-[11px] text-mute">Signed in as</p>
+          <div className="mt-1.5 flex items-center gap-2"><Icon name={ROLES[role].icon} className="h-4 w-4 text-signal" /><span className="text-[13px] font-medium text-ink">{role}</span></div>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-mute">{ROLES[role].blurb}</p>
+        </div>
+      </aside>
+
+      {navOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-base/80" onClick={() => setNavOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-72 border-r border-edge bg-panel p-3" style={{ paddingTop: "calc(env(safe-area-inset-top,0px) + 12px)" }}>
+            <div className="mb-3 flex items-center justify-between px-2">
+              <span className="text-[13px] font-semibold text-ink">Campus OS</span>
+              <button onClick={() => setNavOpen(false)} className="text-mute hover:text-ink"><Icon name="x" /></button>
+            </div>
+            <NavList />
+          </div>
+        </div>
+      )}
+
+      <div className="lg:pl-64">
+        <header className="sticky z-20 border-b border-edge bg-base/90 backdrop-blur" style={{ top: "env(safe-area-inset-top,0px)" }}>
+          <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
+            <button onClick={() => setNavOpen(true)} className="rounded-lg border border-edge bg-panel2 p-2 text-mute lg:hidden"><Icon name="menu" className="h-4 w-4" /></button>
+            <div className="min-w-0">
+              <h1 className="truncate text-[15px] font-semibold text-ink">{current ? current.label : ""}</h1>
+              <p className="hidden text-[11px] text-mute sm:block">Intelligent Digital Campus Ecosystem</p>
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="hidden items-center gap-3 rounded-lg border border-edge bg-panel px-3 py-1.5 md:flex">
+                <span className={cx("h-1.5 w-1.5 rounded-full", connected ? "bg-grn pulse-dot" : "bg-rose")} />
+                <span className="flex items-center gap-1.5 text-[11px] text-mute"><Icon name="cpu" className="h-3.5 w-3.5" />CPU</span>
+                <span className="font-mono text-[13px] font-semibold text-signal tnum">{live ? live.cpu.overall.toFixed(0) : "—"}%</span>
+                <span className="h-4 w-px bg-edge" />
+                <span className="flex items-center gap-1.5 text-[11px] text-mute"><Icon name="memory" className="h-3.5 w-3.5" />MEM</span>
+                <span className="font-mono text-[13px] font-semibold text-teal tnum">{live ? live.mem.pct.toFixed(0) : "—"}%</span>
+              </div>
+              <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-lg border border-edge bg-panel px-3 py-2 font-sans text-[13px] text-ink focus:border-signal focus:outline-none">
+                {Object.keys(ROLES).map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+        </header>
+
+        <main className="px-4 py-5 sm:px-6 sm:py-6">{body}</main>
+
+        <footer className="border-t border-edge px-6 py-5 text-[11px] leading-relaxed text-mute">
+          Live telemetry from {sys.hostname} · {sys.type} {sys.release} · {sys.cores} cores · Node {sys.nodeVersion} ·
+          file operations are confined to {sys.sandbox}
+        </footer>
+      </div>
+
+      <div className="pointer-events-none fixed bottom-4 right-4 z-50 space-y-2">
+        {toasts.map((t) => (
+          <div key={t.id} className={cx("pointer-events-auto rounded-lg border px-4 py-2.5 text-[13px] shadow-lg",
+            t.tone === "rose" ? "border-rose/50 bg-rose/15 text-rose" : t.tone === "amber" ? "border-amber/50 bg-amber/15 text-amber" : "border-grn/50 bg-grn/15 text-grn")}>
+            {t.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
