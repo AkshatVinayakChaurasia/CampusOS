@@ -1,10 +1,13 @@
 {
   "name": "intelligent-digital-campus-ecosystem",
-  "version": "1.0.0",
-  "description": "Operating Systems course prototype that reads live process, memory, disk, network and file-system data from the machine it runs on.",
-  "main": "server.js",
+  "version": "0.2.0",
+  "description": "Operating Systems course project — a terminal shell that reads live process, memory, CPU and file-system data from the machine it runs on. Phase 1 of 4.",
+  "main": "campus.js",
+  "bin": { "campus": "campus.js" },
   "scripts": {
-    "start": "node server.js"
+    "start": "node campus.js",
+    "sys": "node campus.js sys",
+    "ps": "node campus.js ps"
   },
   "engines": { "node": ">=16" },
   "license": "MIT",
